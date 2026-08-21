@@ -39,6 +39,7 @@ export function ProfileDropdown({ totalDone, totalQ, ipaDone, ipaQ, praDone, pra
 
   const displayName = name || user?.email?.split('@')[0] || 'User';
   const avatar = (name || user?.email || 'U')[0].toUpperCase();
+  const shortName = displayName.length > 10 ? displayName.slice(0, 10) + '…' : displayName;
   const pct = totalQ === 0 ? 0 : Math.round((totalDone / totalQ) * 100);
 
   const startEdit = () => { setNameInput(name); setEditingName(true); };
@@ -72,8 +73,8 @@ export function ProfileDropdown({ totalDone, totalQ, ipaDone, ipaQ, praDone, pra
         }}>
           {avatar}
         </div>
-        <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>{displayName}</div>
+        <div style={{ textAlign: 'left', minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{shortName}</div>
           <div style={{ fontSize: 10, color: C.muted }}>{pct}% done</div>
         </div>
         <span style={{ color: C.muted, fontSize: 11, marginLeft: 2 }}>{open ? '▲' : '▼'}</span>
@@ -83,7 +84,7 @@ export function ProfileDropdown({ totalDone, totalQ, ipaDone, ipaQ, praDone, pra
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          width: 300, background: C.surface,
+          width: 'min(300px, calc(100vw - 28px))', background: C.surface,
           border: `1px solid ${C.border2}`, borderRadius: 12,
           boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
           zIndex: 200, overflow: 'hidden',

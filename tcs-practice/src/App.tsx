@@ -5,6 +5,7 @@ import { StoreProvider, useAppStore } from './store/StoreContext';
 import { useEditedQuestions } from './store/useEditedQuestions';
 import { AuthModal } from './components/AuthModal';
 import { ProfileDropdown } from './components/ProfileDropdown';
+import { useIsMobile } from './store/useIsMobile';
 
 // ── Theme tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -294,6 +295,7 @@ function QuestionPage({
   onEdit: (q: Question) => void;
 }) {
   const { isCompleted, toggle } = useAppStore();
+  const isMobile = useIsMobile();
   const [showAnswer, setShowAnswer] = useState(false);
   const [tab, setTab] = useState<'problem' | 'solution'>('problem');
   const done = isCompleted(currentQ.id);
@@ -319,35 +321,52 @@ function QuestionPage({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
-      <div style={{ height: 50, background: C.surface, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, flexShrink: 0 }}>
-        <button onClick={onClose} style={{ background: 'none', border: `1px solid ${C.border2}`, color: C.muted, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-          ← Back
-        </button>
-        <div style={{ width: 1, height: 20, background: C.border2 }} />
-        <span style={{ color: C.muted, fontSize: 13 }}>#{currentQ.id}</span>
-        <span style={{ color: C.text, fontSize: 14, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentQ.title}</span>
-        <Pill label={currentQ.difficulty} color={d.color} bg={d.bg} />
-        <Pill label={`${currentQ.marks} MARKS`} color={currentQ.marks === 35 ? C.purple : C.cyan} bg={currentQ.marks === 35 ? '#1a0a2e' : '#0a1a2e'} />
-        <button onClick={() => onEdit(currentQ)} style={{ background: C.border2, border: 'none', color: C.text, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-          ✏ Edit
-        </button>
-        <button onClick={() => toggle(currentQ.id)} style={{
-          background: done ? C.green : 'none', border: `1px solid ${done ? C.green : C.border2}`,
-          color: done ? '#000' : C.muted, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.2s'
-        }}>
-          {done ? '✓ Done' : 'Mark Done'}
-        </button>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => prev && setCurrentQ(prev)} disabled={!prev} style={{ background: prev ? C.border2 : 'none', border: `1px solid ${C.border}`, color: prev ? C.text : C.border2, borderRadius: 6, padding: '5px 10px', cursor: prev ? 'pointer' : 'not-allowed', fontSize: 12 }}>←</button>
-          <span style={{ color: C.muted, fontSize: 12, alignSelf: 'center', minWidth: 60, textAlign: 'center' }}>{idx + 1} / {list.length}</span>
-          <button onClick={() => next && setCurrentQ(next)} disabled={!next} style={{ background: next ? C.border2 : 'none', border: `1px solid ${C.border}`, color: next ? C.text : C.border2, borderRadius: 6, padding: '5px 10px', cursor: next ? 'pointer' : 'not-allowed', fontSize: 12 }}>→</button>
+      {isMobile ? (
+        /* Mobile top bar — two rows */
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          {/* Row 1 */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 8 }}>
+            <button onClick={onClose} style={{ background: 'none', border: `1px solid ${C.border2}`, color: C.muted, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>← Back</button>
+            <span style={{ color: C.text, fontSize: 13, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentQ.title}</span>
+            <button onClick={() => toggle(currentQ.id)} style={{ background: done ? C.green : 'none', border: `1px solid ${done ? C.green : C.border2}`, color: done ? '#000' : C.muted, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              {done ? '✓ Done' : 'Mark Done'}
+            </button>
+          </div>
+          {/* Row 2 */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px 8px', gap: 6 }}>
+            <Pill label={currentQ.difficulty} color={d.color} bg={d.bg} />
+            <Pill label={`${currentQ.marks}M`} color={currentQ.marks === 35 ? C.purple : C.cyan} bg={currentQ.marks === 35 ? '#1a0a2e' : '#0a1a2e'} />
+            <span style={{ flex: 1 }} />
+            <button onClick={() => prev && setCurrentQ(prev)} disabled={!prev} style={{ background: prev ? C.border2 : 'none', border: `1px solid ${C.border}`, color: prev ? C.text : C.border2, borderRadius: 6, padding: '4px 8px', cursor: prev ? 'pointer' : 'not-allowed', fontSize: 12 }}>←</button>
+            <span style={{ color: C.muted, fontSize: 11 }}>{idx + 1}/{list.length}</span>
+            <button onClick={() => next && setCurrentQ(next)} disabled={!next} style={{ background: next ? C.border2 : 'none', border: `1px solid ${C.border}`, color: next ? C.text : C.border2, borderRadius: 6, padding: '4px 8px', cursor: next ? 'pointer' : 'not-allowed', fontSize: 12 }}>→</button>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Desktop top bar */
+        <div style={{ height: 50, background: C.surface, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ background: 'none', border: `1px solid ${C.border2}`, color: C.muted, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>← Back</button>
+          <div style={{ width: 1, height: 20, background: C.border2 }} />
+          <span style={{ color: C.muted, fontSize: 13 }}>#{currentQ.id}</span>
+          <span style={{ color: C.text, fontSize: 14, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentQ.title}</span>
+          <Pill label={currentQ.difficulty} color={d.color} bg={d.bg} />
+          <Pill label={`${currentQ.marks} MARKS`} color={currentQ.marks === 35 ? C.purple : C.cyan} bg={currentQ.marks === 35 ? '#1a0a2e' : '#0a1a2e'} />
+          <button onClick={() => onEdit(currentQ)} style={{ background: C.border2, border: 'none', color: C.text, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>✏ Edit</button>
+          <button onClick={() => toggle(currentQ.id)} style={{ background: done ? C.green : 'none', border: `1px solid ${done ? C.green : C.border2}`, color: done ? '#000' : C.muted, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.2s' }}>
+            {done ? '✓ Done' : 'Mark Done'}
+          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => prev && setCurrentQ(prev)} disabled={!prev} style={{ background: prev ? C.border2 : 'none', border: `1px solid ${C.border}`, color: prev ? C.text : C.border2, borderRadius: 6, padding: '5px 10px', cursor: prev ? 'pointer' : 'not-allowed', fontSize: 12 }}>←</button>
+            <span style={{ color: C.muted, fontSize: 12, alignSelf: 'center', minWidth: 60, textAlign: 'center' }}>{idx + 1} / {list.length}</span>
+            <button onClick={() => next && setCurrentQ(next)} disabled={!next} style={{ background: next ? C.border2 : 'none', border: `1px solid ${C.border}`, color: next ? C.text : C.border2, borderRadius: 6, padding: '5px 10px', cursor: next ? 'pointer' : 'not-allowed', fontSize: 12 }}>→</button>
+          </div>
+        </div>
+      )}
 
       {/* Split content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Left — Problem */}
-        <div style={{ flex: 1, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {/* Tab bar */}
           <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, padding: '0 20px', background: C.surface, flexShrink: 0 }}>
             {(['problem', 'solution'] as const).map(t => (
@@ -514,8 +533,9 @@ function QuestionPage({
           </div>
         </div>
 
-        {/* Right — quick info panel */}
-        <div style={{ width: 300, background: C.surface, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderLeft: `1px solid ${C.border}` }}>
+        {/* Right — quick info panel (hidden on mobile) */}
+        {!isMobile && (
+        <div className="qpage-right" style={{ width: 300, background: C.surface, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderLeft: `1px solid ${C.border}` }}>
           <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 1.5, textTransform: 'uppercase' }}>Details</div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Row label="ID" value={`#${currentQ.id}`} />
@@ -553,6 +573,7 @@ function QuestionPage({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
@@ -715,7 +736,7 @@ function Section({ title, subtitle, color, questions: qs, onOpen }: {
           }
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(360px, 100%), 1fr))', gap: 12 }}>
           {filtered.map((q, idx) => <QuestionCard key={q.id} q={q} index={idx + 1} onOpen={onOpen} />)}
         </div>
       )}
@@ -726,6 +747,7 @@ function Section({ title, subtitle, color, questions: qs, onOpen }: {
 // ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
   const { data, user, loading, synced } = useAppStore();
+  const isMobile = useIsMobile();
   const { questions: allQuestions, saveEdit, resetEdit, hasEdit } = useEditedQuestions(initialQuestions);
 
   const [openId, setOpenId] = useState<number | null>(null);
@@ -804,7 +826,7 @@ function App() {
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {/* Header */}
-      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
+      <header className="main-header" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: isMobile ? '0 14px' : '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ background: C.accent + '20', border: `1px solid ${C.accent}30`, borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: C.accent, fontSize: 15, fontWeight: 900 }}>IP</span>
@@ -815,7 +837,7 @@ function App() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {user && (
+          {user && !isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ background: C.border, borderRadius: 99, height: 5, width: 120, overflow: 'hidden' }}>
                 <div style={{ width: `${totalPct}%`, background: `linear-gradient(90deg,${C.accent},${C.green})`, height: '100%', borderRadius: 99, transition: 'width 0.5s' }} />
@@ -844,32 +866,36 @@ function App() {
       </header>
 
       {/* Stats bar */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 32px', display: 'flex', alignItems: 'stretch', flexWrap: 'wrap' }}>
+      <div className="stats-bar" style={{
+        background: C.surface, borderBottom: `1px solid ${C.border}`,
+        display: isMobile ? 'grid' : 'flex',
+        gridTemplateColumns: isMobile ? '1fr 1fr 1fr' : undefined,
+        alignItems: 'stretch',
+        width: '100%',
+        overflow: 'hidden',
+      }}>
         {[
           { label: 'Total', value: String(allQuestions.length), color: C.accent },
           { label: 'Done', value: String(totalDone), color: C.green },
           { label: 'Remaining', value: String(allQuestions.length - totalDone), color: C.muted },
-          { label: 'IPA  35 marks', value: `${ipaDone}/${ipaQ.length}`, color: C.purple },
-          { label: 'Coding  15 marks', value: `${praDone}/${praQ.length}`, color: C.cyan },
+          { label: 'IPA\n35 marks', value: `${ipaDone}/${ipaQ.length}`, color: C.purple },
+          { label: 'Coding\n15 marks', value: `${praDone}/${praQ.length}`, color: C.cyan },
         ].map((s, i) => (
           <div key={s.label} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '14px 24px',
-            borderRight: `1px solid ${C.border}`, borderLeft: i === 0 ? 'none' : 'none',
+            display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10,
+            padding: isMobile ? '10px 10px' : '14px 24px',
+            borderRight: `1px solid ${C.border}`,
+            borderBottom: isMobile && i < 3 ? `1px solid ${C.border}` : 'none',
+            minWidth: 0,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</span>
-            <span style={{ fontSize: 11, color: C.muted, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'pre-line' }}>{s.label.replace('  ', '\n')}</span>
+            <span style={{ fontSize: isMobile ? 16 : 22, fontWeight: 800, color: s.color, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{s.value}</span>
+            <span style={{ fontSize: 10, color: C.muted, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'pre-line', overflow: 'hidden' }}>{s.label}</span>
           </div>
         ))}
-        {!synced && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 6, color: C.muted, fontSize: 12 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.orange, display: 'inline-block' }} />
-            Saving…
-          </div>
-        )}
       </div>
 
       {/* Content */}
-      <main style={{ maxWidth: 1320, margin: '0 auto', padding: '36px 28px' }}>
+      <main style={{ maxWidth: 1320, margin: '0 auto', padding: isMobile ? '20px 14px' : '36px 28px' }}>
         <Section title="IPA Questions" subtitle="35 MARKS" color={C.purple} questions={ipaQ} onOpen={q => openQuestion(q, ipaQ)} />
         <Section title="Coding Questions" subtitle="15 MARKS" color={C.cyan} questions={praQ} onOpen={q => openQuestion(q, praQ)} />
         {isAdmin && adminQ.length > 0 && (
