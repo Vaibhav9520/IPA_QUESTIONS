@@ -6,6 +6,7 @@ import { useEditedQuestions } from './store/useEditedQuestions';
 import { AuthModal } from './components/AuthModal';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { useIsMobile } from './store/useIsMobile';
+import { useVisitorCount } from './store/useVisitorCount';
 
 // ── Theme tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -28,6 +29,21 @@ const diff = {
   Medium: { color: C.orange, bg: '#2d1f00' },
   Hard:   { color: C.red,    bg: '#2d0c0c' },
 };
+
+// ── Visitor Badge ─────────────────────────────────────────────────────────────
+function VisitorBadge() {
+  const count = useVisitorCount();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {/* Green dot */}
+      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#3fb950', flexShrink: 0 }} />
+      <span style={{ fontSize: 14, fontWeight: 800, color: '#e6edf3', fontVariantNumeric: 'tabular-nums' }}>
+        {count !== null ? count.toLocaleString() : '—'}
+      </span>
+      <span style={{ fontSize: 13, color: '#8b949e', fontWeight: 400 }}>visitors</span>
+    </div>
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function Pill({ label, color, bg }: { label: string; color: string; bg: string }) {
@@ -286,13 +302,14 @@ function ProjectRenderer({ text }: { text: string }) {
 
 // ── Question Page (LeetCode style full-page split) ────────────────────────────
 function QuestionPage({
-  currentQ, setCurrentQ, list, onClose, onEdit,
+  currentQ, setCurrentQ, list, onClose, onEdit, isAdmin,
 }: {
   currentQ: Question;
   setCurrentQ: (q: Question) => void;
   list: Question[];
   onClose: () => void;
   onEdit: (q: Question) => void;
+  isAdmin: boolean;
 }) {
   const { isCompleted, toggle } = useAppStore();
   const isMobile = useIsMobile();
@@ -351,7 +368,7 @@ function QuestionPage({
           <span style={{ color: C.text, fontSize: 14, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentQ.title}</span>
           <Pill label={currentQ.difficulty} color={d.color} bg={d.bg} />
           <Pill label={`${currentQ.marks} MARKS`} color={currentQ.marks === 35 ? C.purple : C.cyan} bg={currentQ.marks === 35 ? '#1a0a2e' : '#0a1a2e'} />
-          <button onClick={() => onEdit(currentQ)} style={{ background: C.border2, border: 'none', color: C.text, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>✏ Edit</button>
+          {isAdmin && <button onClick={() => onEdit(currentQ)} style={{ background: C.border2, border: 'none', color: C.text, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>✏ Edit</button>}
           <button onClick={() => toggle(currentQ.id)} style={{ background: done ? C.green : 'none', border: `1px solid ${done ? C.green : C.border2}`, color: done ? '#000' : C.muted, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.2s' }}>
             {done ? '✓ Done' : 'Mark Done'}
           </button>
@@ -806,6 +823,7 @@ function App() {
           list={activeList}
           onClose={() => { setOpenId(null); }}
           onEdit={q => setEditId(q.id)}
+          isAdmin={isAdmin}
         />
         {editQ && (
           <EditModal
@@ -835,6 +853,8 @@ function App() {
             <div style={{ color: C.text, fontWeight: 800, fontSize: 16, letterSpacing: -0.3 }}>IPA Practice</div>
             <div style={{ color: C.muted, fontSize: 11 }}>Question Bank</div>
           </div>
+          <div style={{ width: 1, height: 28, background: C.border2 }} />
+          <VisitorBadge />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {user && !isMobile && (

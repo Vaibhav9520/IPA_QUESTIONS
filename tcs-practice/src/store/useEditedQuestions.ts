@@ -1,33 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Question } from '../data/questions';
-
-const KEY = 'tcs_edited_questions_v1';
-
-function loadEdits(): Record<number, Partial<Question>> {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
+import { supabase } from '../lib/supabase';
 
 export function useEditedQuestions(base: Question[]) {
-  const [edits, setEdits] = useState<Record<number, Partial<Question>>>(loadEdits);
+  const [edits, setEdits] = useState<Record<number, Partial<Question>>>({});
 
-  // Persist edits to localStorage whenever they change
+  // Load all edits from Supabase on mount (all users see admin edits)
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(edits));
-  }, [edits]);
+    supabase
+      .from('edited_questions')
+      .select('id, data')
+      .then(({ data: rows, error }) => {
+        if (error) { console.warn('[edits] load error:', error.message); return; }
+        if (!rows) return;
+        const map: Record<number, Partial<Question>> = {};
+        rows.forEach(r => { map[r.id] = r.data; });
+        setEdits(map);
+      });
+  }, []);
 
-  // Merge base questions with stored edits
+  // Merge base questions with edits
   const questions = base.map(q =>
     edits[q.id] ? { ...q, ...edits[q.id] } : q
   );
 
-  const saveEdit = useCallback((updated: Question) => {
+  // Save edit to Supabase (admin only — enforced by RLS)
+  const saveEdit = useCallback(async (updated: Question) => {
+    const { error } = await supabase
+      .from('edited_questions')
+      .upsert({ id: updated.id, data: updated, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) { console.warn('[edits] save error:', error.message); return; }
     setEdits(prev => ({ ...prev, [updated.id]: updated }));
   }, []);
 
-  const resetEdit = useCallback((id: number) => {
+  // Reset — delete from Supabase
+  const resetEdit = useCallback(async (id: number) => {
+    await supabase.from('edited_questions').delete().eq('id', id);
     setEdits(prev => {
       const next = { ...prev };
       delete next[id];
