@@ -114,7 +114,101 @@ function EditModal({ q, onClose, onSave, onReset, isEdited }: {
   );
 }
 
-// ── Syntax highlighter (Java, no deps) ───────────────────────────────────────
+// ── Add Question Modal ────────────────────────────────────────────────────────
+function AddQuestionModal({ onClose, onAdd, nextId }: {
+  onClose: () => void;
+  onAdd: (q: Question) => void;
+  nextId: number;
+}) {
+  const blank: Question = {
+    id: nextId, title: '', question: '', marks: 15, category: 'PRA',
+    subcategory: '', difficulty: 'Easy', tags: [], input: '', output: '',
+    answer: { explanation: '', code: '' }, sourceFile: 'admin-added',
+  };
+  const [form, setForm] = useState<Question>({ ...blank });
+  const set = (k: keyof Question, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: C.surface, border: `1px solid ${C.border2}`, borderRadius: 14, width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto', padding: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, color: C.text, fontSize: 18 }}>+ Add New Question</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: 22, cursor: 'pointer' }}>✕</button>
+        </div>
+
+        {/* Row: Category, Marks, Difficulty */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+          {[
+            { label: 'Category', key: 'category', opts: ['IPA', 'PRA', 'ADMIN'] },
+            { label: 'Marks', key: 'marks', opts: ['15', '35'] },
+            { label: 'Difficulty', key: 'difficulty', opts: ['Easy', 'Medium', 'Hard'] },
+          ].map(({ label, key, opts }) => (
+            <div key={key}>
+              <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{label}</label>
+              <select value={String((form as any)[key])} onChange={e => set(key as keyof Question, key === 'marks' ? Number(e.target.value) : e.target.value)}
+                style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }}>
+                {opts.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        {/* Subcategory + Tags */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div>
+            <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Subcategory</label>
+            <input value={form.subcategory} onChange={e => set('subcategory', e.target.value)} placeholder="e.g. Arrays"
+              style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Tags (comma separated)</label>
+            <input value={form.tags.join(', ')} onChange={e => set('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))} placeholder="e.g. OOP, Arrays"
+              style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+        </div>
+
+        {[
+          { label: 'Title', key: 'title', multi: false },
+          { label: 'Question', key: 'question', multi: true },
+          { label: 'Input', key: 'input', multi: true },
+          { label: 'Output', key: 'output', multi: false },
+        ].map(({ label, key, multi }) => (
+          <div key={key} style={{ marginBottom: 16 }}>
+            <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{label}</label>
+            {multi
+              ? <textarea value={(form as any)[key] || ''} onChange={e => set(key as keyof Question, e.target.value)} rows={4}
+                  style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }} />
+              : <input value={(form as any)[key] || ''} onChange={e => set(key as keyof Question, e.target.value)}
+                  style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, boxSizing: 'border-box' }} />
+            }
+          </div>
+        ))}
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Explanation</label>
+          <textarea value={form.answer?.explanation || ''} onChange={e => set('answer', { ...form.answer, explanation: e.target.value })} rows={3}
+            style={{ width: '100%', background: C.bg, color: C.text, border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ color: C.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Solution Code</label>
+          <textarea value={form.answer?.code || ''} onChange={e => set('answer', { ...form.answer, code: e.target.value })} rows={10}
+            style={{ width: '100%', background: '#010409', color: '#e6edf3', border: `1px solid ${C.border2}`, borderRadius: 8, padding: '10px 12px', fontSize: 12, fontFamily: "'Fira Code','Consolas',monospace", resize: 'vertical', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '9px 20px', background: 'none', border: `1px solid ${C.border2}`, color: C.muted, borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+          <button onClick={() => { if (!form.title.trim()) return; onAdd(form); onClose(); }}
+            style={{ padding: '9px 20px', background: C.green, border: 'none', color: '#000', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>
+            + Add Question
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function highlight(code: string): React.ReactNode[] {
   const lines = code.split('\n');
   return lines.map((line, li) => {
@@ -302,13 +396,14 @@ function ProjectRenderer({ text }: { text: string }) {
 
 // ── Question Page (LeetCode style full-page split) ────────────────────────────
 function QuestionPage({
-  currentQ, setCurrentQ, list, onClose, onEdit, isAdmin,
+  currentQ, setCurrentQ, list, onClose, onEdit, onDelete, isAdmin,
 }: {
   currentQ: Question;
   setCurrentQ: (q: Question) => void;
   list: Question[];
   onClose: () => void;
   onEdit: (q: Question) => void;
+  onDelete: (q: Question) => void;
   isAdmin: boolean;
 }) {
   const { isCompleted, toggle } = useAppStore();
@@ -369,6 +464,7 @@ function QuestionPage({
           <Pill label={currentQ.difficulty} color={d.color} bg={d.bg} />
           <Pill label={`${currentQ.marks} MARKS`} color={currentQ.marks === 35 ? C.purple : C.cyan} bg={currentQ.marks === 35 ? '#1a0a2e' : '#0a1a2e'} />
           {isAdmin && <button onClick={() => onEdit(currentQ)} style={{ background: C.border2, border: 'none', color: C.text, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>✏ Edit</button>}
+          {isAdmin && <button onClick={() => { if (confirm(`Delete "${currentQ.title}"?`)) { onDelete(currentQ); onClose(); } }} style={{ background: 'none', border: `1px solid ${C.red}60`, color: C.red, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>🗑 Delete</button>}
           <button onClick={() => toggle(currentQ.id)} style={{ background: done ? C.green : 'none', border: `1px solid ${done ? C.green : C.border2}`, color: done ? '#000' : C.muted, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.2s' }}>
             {done ? '✓ Done' : 'Mark Done'}
           </button>
@@ -765,12 +861,13 @@ function Section({ title, subtitle, color, questions: qs, onOpen }: {
 function App() {
   const { data, user, loading, synced } = useAppStore();
   const isMobile = useIsMobile();
-  const { questions: allQuestions, saveEdit, resetEdit, hasEdit } = useEditedQuestions(initialQuestions);
+  const { questions: allQuestions, saveEdit, resetEdit, deleteQuestion, addQuestion, hasEdit } = useEditedQuestions(initialQuestions);
 
   const [openId, setOpenId] = useState<number | null>(null);
   const [activeIds, setActiveIds] = useState<number[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const currentQ = openId != null ? (allQuestions.find(q => q.id === openId) ?? null) : null;
   const activeList = useMemo(() => activeIds.map(id => allQuestions.find(q => q.id === id)!).filter(Boolean), [activeIds, allQuestions]);
@@ -804,6 +901,17 @@ function App() {
     resetEdit(id);
   }, [resetEdit]);
 
+  const handleDelete = useCallback((q: Question) => {
+    deleteQuestion(q.id);
+  }, [deleteQuestion]);
+
+  const handleAdd = useCallback((q: Question) => {
+    addQuestion(q);
+  }, [addQuestion]);
+
+  // next available ID for new questions
+  const nextId = useMemo(() => Math.max(...allQuestions.map(q => q.id), 1000) + 1, [allQuestions]);
+
   // Loading spinner
   if (loading) {
     return (
@@ -823,6 +931,7 @@ function App() {
           list={activeList}
           onClose={() => { setOpenId(null); }}
           onEdit={q => setEditId(q.id)}
+          onDelete={handleDelete}
           isAdmin={isAdmin}
         />
         {editQ && (
@@ -842,6 +951,8 @@ function App() {
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
       {/* Auth modal for guests trying to open a question */}
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {/* Add question modal — admin only */}
+      {showAddModal && <AddQuestionModal onClose={() => setShowAddModal(false)} onAdd={handleAdd} nextId={nextId} />}
 
       {/* Header */}
       <header className="main-header" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: isMobile ? '0 14px' : '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -866,11 +977,20 @@ function App() {
             </div>
           )}
           {user ? (
-            <ProfileDropdown
-              totalDone={totalDone} totalQ={allQuestions.length}
-              ipaDone={ipaDone} ipaQ={ipaQ.length}
-              praDone={praDone} praQ={praQ.length}
-            />
+            <>
+              {isAdmin && (
+                <button onClick={() => setShowAddModal(true)} style={{
+                  padding: '6px 14px', background: C.green + '20',
+                  border: `1px solid ${C.green}50`, color: C.green,
+                  borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                }}>+ Add Question</button>
+              )}
+              <ProfileDropdown
+                totalDone={totalDone} totalQ={allQuestions.length}
+                ipaDone={ipaDone} ipaQ={ipaQ.length}
+                praDone={praDone} praQ={praQ.length}
+              />
+            </>
           ) : (
             <button onClick={() => setShowAuthModal(true)} style={{
               padding: '7px 20px',
