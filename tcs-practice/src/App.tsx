@@ -3,7 +3,8 @@ import { questions as initialQuestions } from './data/questions';
 import type { Question } from './data/questions';
 import { StoreProvider, useAppStore } from './store/StoreContext';
 import { useEditedQuestions } from './store/useEditedQuestions';
-import { AuthPage } from './components/AuthPage';
+import { AuthModal } from './components/AuthModal';
+import { ProfileDropdown } from './components/ProfileDropdown';
 
 // ── Theme tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -202,6 +203,86 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
+// ── Project Renderer (Admin questions) ───────────────────────────────────────
+function ProjectRenderer({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line) { i++; continue; }
+
+    // Main title line (Project Title:)
+    if (line.startsWith('Project Title:')) {
+      elements.push(
+        <div key={i} style={{ background: 'linear-gradient(135deg,#1a0a2e,#0d1117)', border: `1px solid ${C.purple}40`, borderRadius: 12, padding: '16px 20px', marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.purple, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Project Title</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{line.replace('Project Title:', '').trim()}</div>
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Numbered section header like "1. Registration Page"
+    const sectionMatch = line.match(/^(\d+)\.\s+(.+)/);
+    if (sectionMatch) {
+      const num = sectionMatch[1];
+      const title = sectionMatch[2];
+      // Collect bullet points under this section
+      const bullets: string[] = [];
+      i++;
+      while (i < lines.length) {
+        const sub = lines[i].trim();
+        if (!sub) { i++; continue; }
+        if (/^\d+\./.test(sub) || /^[A-Z]/.test(sub) && sub.endsWith(':')) break;
+        if (sub.startsWith('-')) bullets.push(sub.slice(1).trim());
+        else break;
+        i++;
+      }
+      const sectionColors = ['#58a6ff','#3fb950','#d29922','#bc8cff','#79c0ff','#f85149','#ffa657'];
+      const col = sectionColors[(parseInt(num)-1) % sectionColors.length];
+      elements.push(
+        <div key={`s${num}`} style={{ background: C.surface, border: `1px solid ${C.border2}`, borderLeft: `3px solid ${col}`, borderRadius: 10, padding: '16px 20px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: bullets.length ? 12 : 0 }}>
+            <span style={{ width: 26, height: 26, borderRadius: 8, background: col + '20', border: `1px solid ${col}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: col, flexShrink: 0 }}>{num}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{title}</span>
+          </div>
+          {bullets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 36 }}>
+              {bullets.map((b, bi) => (
+                <div key={bi} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <span style={{ color: col, fontSize: 14, flexShrink: 0, marginTop: 2 }}>›</span>
+                  <span style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6 }}>{b}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+      continue;
+    }
+
+    // Section divider headers like "Pages to Develop:" or "Database Design:" or "Steps:"
+    if (line.endsWith(':') && !line.startsWith('-')) {
+      elements.push(
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 12px' }}>
+          <div style={{ width: 3, height: 18, background: C.accent, borderRadius: 2 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent, letterSpacing: 1.5, textTransform: 'uppercase' }}>{line.replace(':', '')}</span>
+          <div style={{ flex: 1, height: 1, background: C.border }} />
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Regular line
+    elements.push(<p key={i} style={{ margin: '0 0 8px', fontSize: 14, color: C.text, lineHeight: 1.8 }}>{line}</p>);
+    i++;
+  }
+
+  return <div>{elements}</div>;
+}
+
 // ── Question Page (LeetCode style full-page split) ────────────────────────────
 function QuestionPage({
   currentQ, setCurrentQ, list, onClose, onEdit,
@@ -297,12 +378,12 @@ function QuestionPage({
 
                 {/* Question description — render each line smartly */}
                 <div style={{ marginBottom: 28 }}>
-                  {currentQ.question.split('\n').map((line, i) => {
+                  {currentQ.category === 'ADMIN' ? (
+                    <ProjectRenderer text={currentQ.question} />
+                  ) : currentQ.question.split('\n').map((line, i) => {
                     const trimmed = line.trim();
                     if (!trimmed) return <div key={i} style={{ height: 10 }} />;
-                    // Attribute lines like "courseId - int"
                     const isAttr = /^[a-zA-Z_][\w\s]*[-–]\s*(int|String|double|boolean|float|long|char|void)/.test(trimmed);
-                    // Section headers ending with ":"
                     const isHeader = /^[A-Za-z][\w\s]+:$/.test(trimmed) || /^(create|implement|note|input|output|example)/i.test(trimmed);
                     if (isAttr) return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.border}` }}>
@@ -487,7 +568,7 @@ function Row({ label, value, color, mono }: { label: string; value: string; colo
 }
 
 // ── Question Card ─────────────────────────────────────────────────────────────
-function QuestionCard({ q, onOpen }: { q: Question; onOpen: (q: Question) => void }) {
+function QuestionCard({ q, index, onOpen }: { q: Question; index: number; onOpen: (q: Question) => void }) {
   const { isCompleted, toggle } = useAppStore();
   const done = isCompleted(q.id);
   const d = diff[q.difficulty as keyof typeof diff];
@@ -531,7 +612,7 @@ function QuestionCard({ q, onOpen }: { q: Question; onOpen: (q: Question) => voi
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* ID + Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 11, color: C.border2, fontFamily: 'monospace', flexShrink: 0 }}>#{q.id}</span>
+          <span style={{ fontSize: 11, color: C.border2, fontFamily: 'monospace', flexShrink: 0 }}>#{index}</span>
           <span style={{
             fontSize: 15, fontWeight: 700,
             color: done ? C.green : C.text,
@@ -635,7 +716,7 @@ function Section({ title, subtitle, color, questions: qs, onOpen }: {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
-          {filtered.map(q => <QuestionCard key={q.id} q={q} onOpen={onOpen} />)}
+          {filtered.map((q, idx) => <QuestionCard key={q.id} q={q} index={idx + 1} onOpen={onOpen} />)}
         </div>
       )}
     </section>
@@ -644,29 +725,36 @@ function Section({ title, subtitle, color, questions: qs, onOpen }: {
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
-  const { data, user, loading, synced, signOut } = useAppStore();
+  const { data, user, loading, synced } = useAppStore();
   const { questions: allQuestions, saveEdit, resetEdit, hasEdit } = useEditedQuestions(initialQuestions);
 
   const [openId, setOpenId] = useState<number | null>(null);
   const [activeIds, setActiveIds] = useState<number[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const currentQ = openId != null ? (allQuestions.find(q => q.id === openId) ?? null) : null;
   const activeList = useMemo(() => activeIds.map(id => allQuestions.find(q => q.id === id)!).filter(Boolean), [activeIds, allQuestions]);
   const editQ = editId != null ? (allQuestions.find(q => q.id === editId) ?? null) : null;
 
-  const ipaQ = useMemo(() => allQuestions.filter(q => q.category === 'IPA'), [allQuestions]);
-  const praQ = useMemo(() => allQuestions.filter(q => q.category === 'PRA'), [allQuestions]);
+  const ADMIN_EMAIL = 'vaibhavsingh01080@gmail.com';
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  const ipaQ = useMemo(() => allQuestions.filter(q => q.category === 'IPA' && (!q.adminOnly || isAdmin)), [allQuestions, isAdmin]);
+  const praQ = useMemo(() => allQuestions.filter(q => q.category === 'PRA' && (!q.adminOnly || isAdmin)), [allQuestions, isAdmin]);
+  const adminQ = useMemo(() => isAdmin ? allQuestions.filter(q => q.category === 'ADMIN') : [], [allQuestions, isAdmin]);
 
   const totalDone = data.completed.length;
   const totalPct = Math.round((totalDone / allQuestions.length) * 100);
   const ipaDone = ipaQ.filter(q => data.completed.includes(q.id)).length;
   const praDone = praQ.filter(q => data.completed.includes(q.id)).length;
 
+  // If not logged in, intercept question open and show auth modal instead
   const openQuestion = useCallback((q: Question, list: Question[]) => {
+    if (!user) { setShowAuthModal(true); return; }
     setActiveIds(list.map(x => x.id));
     setOpenId(q.id);
-  }, []);
+  }, [user]);
 
   const handleSave = useCallback((updated: Question) => {
     saveEdit(updated);
@@ -677,7 +765,7 @@ function App() {
     resetEdit(id);
   }, [resetEdit]);
 
-  // Show loading spinner while checking auth
+  // Loading spinner
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -686,12 +774,8 @@ function App() {
     );
   }
 
-  // Show login page if not authenticated
-  if (!user) {
-    return <AuthPage />;
-  }
-
-  if (openId != null && currentQ) {
+  // Question detail page (logged-in only — guests can't reach openId)
+  if (openId != null && currentQ && user) {
     return (
       <>
         <QuestionPage
@@ -716,6 +800,9 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
+      {/* Auth modal for guests trying to open a question */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+
       {/* Header */}
       <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -728,25 +815,31 @@ function App() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ background: C.border, borderRadius: 99, height: 5, width: 140, overflow: 'hidden' }}>
-              <div style={{ width: `${totalPct}%`, background: `linear-gradient(90deg,${C.accent},${C.green})`, height: '100%', borderRadius: 99, transition: 'width 0.5s' }} />
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ background: C.border, borderRadius: 99, height: 5, width: 120, overflow: 'hidden' }}>
+                <div style={{ width: `${totalPct}%`, background: `linear-gradient(90deg,${C.accent},${C.green})`, height: '100%', borderRadius: 99, transition: 'width 0.5s' }} />
+              </div>
+              <span style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{totalDone}<span style={{ color: C.muted, fontWeight: 400 }}>/{allQuestions.length}</span></span>
             </div>
-            <span style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{totalDone}<span style={{ color: C.muted, fontWeight: 400 }}>/{allQuestions.length}</span></span>
-          </div>
-          {/* User info + logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderLeft: `1px solid ${C.border}`, paddingLeft: 16 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.accent + '25', border: `1px solid ${C.accent}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: C.accent }}>
-              {user.email?.[0].toUpperCase()}
-            </div>
-            <span style={{ fontSize: 12, color: C.muted, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</span>
-            <button onClick={signOut} style={{ background: 'none', border: `1px solid ${C.border2}`, color: C.muted, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.red; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border2; (e.currentTarget as HTMLButtonElement).style.color = C.muted; }}
-            >
-              Log out
+          )}
+          {user ? (
+            <ProfileDropdown
+              totalDone={totalDone} totalQ={allQuestions.length}
+              ipaDone={ipaDone} ipaQ={ipaQ.length}
+              praDone={praDone} praQ={praQ.length}
+            />
+          ) : (
+            <button onClick={() => setShowAuthModal(true)} style={{
+              padding: '7px 20px',
+              background: `linear-gradient(135deg, #1f6feb, ${C.accent})`,
+              color: '#fff', border: 'none', borderRadius: 8,
+              cursor: 'pointer', fontWeight: 700, fontSize: 13,
+              boxShadow: `0 2px 12px ${C.accent}30`,
+            }}>
+              Login / Register
             </button>
-          </div>
+          )}
         </div>
       </header>
 
@@ -779,6 +872,9 @@ function App() {
       <main style={{ maxWidth: 1320, margin: '0 auto', padding: '36px 28px' }}>
         <Section title="IPA Questions" subtitle="35 MARKS" color={C.purple} questions={ipaQ} onOpen={q => openQuestion(q, ipaQ)} />
         <Section title="Coding Questions" subtitle="15 MARKS" color={C.cyan} questions={praQ} onOpen={q => openQuestion(q, praQ)} />
+        {isAdmin && adminQ.length > 0 && (
+          <Section title="Admin — Projects & Notes" subtitle="ADMIN ONLY" color={C.red} questions={adminQ} onOpen={q => openQuestion(q, adminQ)} />
+        )}
       </main>
 
       <footer style={{ borderTop: `1px solid ${C.border}`, padding: '14px 32px', textAlign: 'center', color: C.border2, fontSize: 12, background: C.surface }}>

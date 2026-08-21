@@ -3,7 +3,7 @@ export interface Question {
   title: string;
   question: string;
   marks: 15 | 35;
-  category: 'IPA' | 'PRA';
+  category: 'IPA' | 'PRA' | 'ADMIN';
   subcategory: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   tags: string[];
@@ -12,6 +12,7 @@ export interface Question {
   examples?: { input: string; output: string }[];
   answer: { explanation: string; code?: string } | null;
   sourceFile: string;
+  adminOnly?: boolean;
 }
 
 export const questions: Question[] = [
@@ -5691,6 +5692,86 @@ public class Uncommon_Element {
 }`
     },
     sourceFile: "Uncommon_Element.java"
+  },
+
+  // ── ADMIN ONLY ────────────────────────────────────────────────────────────────
+  {
+    id: 200,
+    title: "Project — Hospital Management System",
+    question: `Project Title: Hospital Management System – Web Application with Database Integration
+
+Pages to Develop:
+
+1. Registration Page (User/Patient Signup)
+   - Fields: Name, Email, Phone, Password, DOB, Gender
+   - Validation for unique email/phone
+   - Insert data into User Table
+
+2. Login Page (Authentication)
+   - Email + Password authentication
+   - Validate from User Table (Role-based: Patient/Admin)
+   - Redirect to Dashboard
+
+3. Hospital Case Registering Page
+   - Patients can register a case (complaint/symptom)
+   - Fields: Case ID, Patient ID, Symptoms, Date, Status (Open/Pending)
+   - Stored in Cases Table
+
+4. Patient Details Page
+   - Fetch details of logged-in patient
+   - Show case history, medical records
+   - Linked with User Table + Cases Table
+
+5. Case Raising & Closing Page
+   - Case Raising → New entry in Cases Table
+   - Case Closing → Update status in Cases Table (Closed)
+   - Only Admin/Doctor role can close cases
+
+6. Order History Page
+   - Show all previous medical cases of a patient
+   - Linked with Cases Table + Patient ID
+
+7. Admin Page (Control Panel)
+   - Admin can: View all patients & cases, Assign doctors, Close cases, Manage hospital data
+
+Database Design:
+
+1. Users Table — user_id (PK), name, email, phone, password, role (patient/admin)
+2. Cases Table — case_id (PK), patient_id (FK), symptoms, status (open/closed), created_date
+3. Doctors Table — doctor_id (PK), name, specialization, email
+4. Case_Assignments Table — assignment_id (PK), case_id (FK), doctor_id (FK), assigned_date
+5. Order_History Table — order_id (PK), patient_id (FK), case_id (FK), status, date
+
+Steps:
+1. Frontend — React: Registration, Login, Dashboard, Case Register, Admin Panel
+2. Backend — Node.js/Django: APIs for auth, case management, admin controls
+3. Database — MySQL/PostgreSQL: Store users, cases, assignments, history
+4. Integration — Connect backend APIs with frontend, JWT authentication
+5. Testing — Test login, registration, case creation & closing flow`,
+    marks: 35,
+    category: "ADMIN",
+    subcategory: "Project / Full Stack",
+    difficulty: "Hard",
+    tags: ["Project", "Full Stack", "Database", "React", "JWT"],
+    answer: {
+      explanation: "Full stack hospital management system with role-based auth (Patient/Admin), case management, doctor assignment, and order history.",
+      code: `// Tech Stack
+// Frontend: React + React Router
+// Backend: Node.js (Express) or Django
+// Database: PostgreSQL / MySQL
+// Auth: JWT tokens
+
+// Key API endpoints:
+// POST /api/register      → Create user
+// POST /api/login         → Auth, return JWT
+// POST /api/cases         → Create new case
+// GET  /api/cases/:id     → Get patient cases
+// PUT  /api/cases/:id     → Close/update case (admin only)
+// GET  /api/admin/users   → All users (admin only)
+// POST /api/assign        → Assign doctor to case`
+    },
+    sourceFile: "admin/hospital-management.md",
+    adminOnly: true,
   },
 
 ];

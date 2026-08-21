@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/StoreContext';
+import { supabase } from '../lib/supabase';
 
 const C = {
   bg:      '#0d1117',
@@ -16,6 +17,7 @@ const C = {
 export function AuthPage() {
   const { signIn, signUp } = useAppStore();
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,21 +26,12 @@ export function AuthPage() {
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError(''); setSuccess('');
     setLoading(true);
 
-    if (!email || !password) {
-      setError('Please fill in all fields.');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      setLoading(false);
-      return;
-    }
+    if (!email || !password) { setError('Please fill in all fields.'); setLoading(false); return; }
+    if (mode === 'register' && !name.trim()) { setError('Please enter your name.'); setLoading(false); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return; }
 
     if (mode === 'login') {
       const err = await signIn(email, password);
@@ -48,83 +41,50 @@ export function AuthPage() {
       if (err) {
         setError(err.message);
       } else {
-        setSuccess('Account created! Check your email to confirm, then log in.');
-        setMode('login');
-        setPassword('');
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          await supabase.from('profiles').upsert({ id: data.user.id, name: name.trim() }, { onConflict: 'id' });
+        }
+        localStorage.setItem('pending_profile_name', name.trim());
+        // Auto sign in after register (email confirmation is disabled)
+        await signIn(email, password);
       }
     }
-
     setLoading(false);
   };
 
   const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: C.bg,
-    color: C.text,
-    border: `1px solid ${C.border2}`,
-    borderRadius: 8,
-    padding: '11px 14px',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s',
+    width: '100%', background: C.bg, color: C.text,
+    border: `1px solid ${C.border2}`, borderRadius: 8,
+    padding: '11px 14px', fontSize: 14, outline: 'none',
+    boxSizing: 'border-box', transition: 'border-color 0.2s',
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: C.bg,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
-      fontFamily: "'Inter','Segoe UI',sans-serif",
-    }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Logo / Header */}
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+
+        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: `linear-gradient(135deg, ${C.accent}, #1f6feb)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26, margin: '0 auto 16px',
-            boxShadow: `0 8px 24px ${C.accent}40`,
-          }}>
-            IP
+          <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(135deg, #1f6feb, ${C.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 auto 16px', boxShadow: `0 8px 32px ${C.accent}40` }}>
+            IPA
           </div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: C.text }}>IPA Practice</h1>
-          <p style={{ margin: '6px 0 0', color: C.muted, fontSize: 14 }}>TCS IPA + PRA Question Bank</p>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: C.text, letterSpacing: -0.5 }}>IPA Practice</h1>
+          <p style={{ margin: '6px 0 0', color: C.muted, fontSize: 14 }}>IPA + Coding Question Bank</p>
         </div>
 
         {/* Card */}
-        <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border2}`,
-          borderRadius: 14,
-          padding: 32,
-        }}>
-          {/* Tab switcher */}
-          <div style={{
-            display: 'flex',
-            background: C.bg,
-            borderRadius: 8,
-            padding: 3,
-            marginBottom: 28,
-            border: `1px solid ${C.border}`,
-          }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border2}`, borderRadius: 16, padding: 32, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', background: C.bg, borderRadius: 10, padding: 4, marginBottom: 28, border: `1px solid ${C.border}` }}>
             {(['login', 'register'] as const).map(m => (
               <button key={m} onClick={() => { setMode(m); setError(''); setSuccess(''); }} style={{
-                flex: 1,
-                padding: '8px 0',
+                flex: 1, padding: '9px 0',
                 background: mode === m ? C.accent : 'none',
                 color: mode === m ? '#000' : C.muted,
-                border: 'none',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: 13,
-                textTransform: 'capitalize',
-                transition: 'all 0.2s',
+                border: 'none', borderRadius: 7, cursor: 'pointer',
+                fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
               }}>
                 {m === 'login' ? 'Log In' : 'Register'}
               </button>
@@ -132,67 +92,48 @@ export function AuthPage() {
           </div>
 
           <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {mode === 'register' && (
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Your Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter your full name"
+                  style={inputStyle}
+                  onFocus={e => (e.target.style.borderColor = C.accent)}
+                  onBlur={e => (e.target.style.borderColor = C.border2)}
+                  autoComplete="name" />
+              </div>
+            )}
+
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
+              <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = C.accent)}
                 onBlur={e => (e.target.style.borderColor = C.border2)}
-                autoComplete="email"
-              />
+                autoComplete="email" />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+              <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder={mode === 'register' ? 'Min 6 characters' : '••••••••'}
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = C.accent)}
                 onBlur={e => (e.target.style.borderColor = C.border2)}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              />
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
             </div>
 
-            {error && (
-              <div style={{ background: '#2d0c0c', border: `1px solid ${C.red}40`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.red }}>
-                {error}
-              </div>
-            )}
+            {error && <div style={{ background: '#2d0c0c', border: `1px solid ${C.red}40`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.red }}>{error}</div>}
+            {success && <div style={{ background: '#0d2818', border: `1px solid ${C.green}40`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.green }}>{success}</div>}
 
-            {success && (
-              <div style={{ background: '#0d2818', border: `1px solid ${C.green}40`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.green }}>
-                {success}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '12px 0',
-                background: loading ? C.border2 : `linear-gradient(135deg, ${C.accent}, #1f6feb)`,
-                color: loading ? C.muted : '#fff',
-                border: 'none',
-                borderRadius: 8,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                fontSize: 15,
-                marginTop: 4,
-                transition: 'all 0.2s',
-                boxShadow: loading ? 'none' : `0 4px 16px ${C.accent}30`,
-              }}
-            >
+            <button type="submit" disabled={loading} style={{
+              padding: '13px 0', marginTop: 4,
+              background: loading ? C.border2 : `linear-gradient(135deg, #1f6feb, ${C.accent})`,
+              color: loading ? C.muted : '#fff',
+              border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 800, fontSize: 15, transition: 'all 0.2s',
+              boxShadow: loading ? 'none' : `0 4px 20px ${C.accent}30`,
+            }}>
               {loading ? 'Please wait…' : mode === 'login' ? 'Log In' : 'Create Account'}
             </button>
           </form>
@@ -200,10 +141,8 @@ export function AuthPage() {
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: C.muted }}>
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); }}
-            style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: 0 }}
-          >
+          <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); }}
+            style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: 0 }}>
             {mode === 'login' ? 'Register' : 'Log In'}
           </button>
         </p>
